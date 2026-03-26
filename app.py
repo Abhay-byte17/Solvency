@@ -92,7 +92,19 @@ EMAIL_SENDER = os.environ.get("SOLVENCY_EMAIL_SENDER")  # e.g. your Gmail
 EMAIL_PASSWORD = os.environ.get("SOLVENCY_EMAIL_PASSWORD")  # app password
 SMTP_SERVER = os.environ.get("SOLVENCY_SMTP_SERVER", "smtp.gmail.com")
 SMTP_PORT = int(os.environ.get("SOLVENCY_SMTP_PORT", "587"))
-GOOGLE_CLIENT_ID = "667900833182-3hjkgj23ap5vtn7ialk545c57i0ijse8.apps.googleusercontent.com"
+
+# Google OAuth Configuration
+# Authorized JavaScript origins (browser):
+#   - http://localhost:5000
+#   - http://127.0.0.1:5000
+#   - https://ktctgjrzrudaystdmxhs.supabase.co
+#   - https://solvency-lfj8.onrender.com
+# Authorized redirect URIs (web server):
+#   - http://localhost:5000/auth/supabase/callback
+#   - http://127.0.0.1:5000/auth/supabase/callback
+#   - https://ktctgjrzrudaystdmxhs.supabase.co/auth/v1/callback
+#   - https://solvency-lfj8.onrender.com/auth/google
+GOOGLE_CLIENT_ID = "717049491439-bk2knn2l7b6bm9htc2p2osgoleg2pf51v.apps.googleusercontent.com"
 
 # Database path - uses project directory
 DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'budget_tracker.db')
