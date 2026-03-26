@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">SolvencyNotifier</string>
+    <string name="label_backend_url">Backend URL</string>
+    <string name="hint_backend_url">http://192.168.1.5:5000/api/receive_sms</string>
+    <string name="label_token">Authorization token (optional)</string>
+    <string name="hint_token">Bearer token without prefix</string>
+    <string name="button_save">Save</string>
+    <string name="button_open_settings">Notification access settings</string>
+    <string name="status_listener_active">Listener active</string>
+    <string name="status_listener_inactive">Listener inactive</string>
+</resources>

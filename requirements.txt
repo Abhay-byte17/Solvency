@@ -1,0 +1,5 @@
+# Budget Tracker - SMS-Based Transaction Input
+# No paid APIs - runs entirely locally
+
+Flask>=3.0.0
+google-generativeai

@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign up – Solvency</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --white: #ffffff;
+      --bg: #f8fafc;
+      --blue: #0284c7;
+      --blue-light: #0ea5e9;
+      --blue-soft: #e0f2fe;
+      --blue-border: #bae6fd;
+      --text: #0f172a;
+      --text-muted: #475569;
+      --danger: #dc2626;
+      --success: #16a34a;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Outfit', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+    }
+    .back {
+      position: absolute;
+      top: 1rem;
+      left: 1.5rem;
+      color: var(--blue);
+      text-decoration: none;
+      font-weight: 500;
+      font-size: 0.9rem;
+    }
+    .back:hover { text-decoration: underline; }
+    .card {
+      width: 100%;
+      max-width: 400px;
+      background: var(--white);
+      border: 1px solid var(--blue-border);
+      border-radius: 16px;
+      padding: 2rem;
+      box-shadow: 0 10px 40px rgba(2, 132, 199, 0.1);
+    }
+    .logo-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.75rem;
+      margin-bottom: 1.5rem;
+    }
+    .logo-row img {
+      width: 48px;
+      height: 48px;
+      object-fit: contain;
+    }
+    .card h1 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1.5rem;
+      color: var(--blue);
+      text-align: center;
+      margin-bottom: 0.5rem;
+    }
+    .card .sub {
+      text-align: center;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      margin-bottom: 1.5rem;
+    }
+    .step {
+      display: none;
+    }
+    .step.active {
+      display: block;
+    }
+    .msg {
+      padding: 0.65rem 0.9rem;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      margin-bottom: 1rem;
+    }
+    .msg.error {
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      color: var(--danger);
+    }
+    .msg.info {
+      background: var(--blue-soft);
+      border: 1px solid var(--blue-border);
+      color: var(--blue);
+    }
+    .msg.success {
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      color: var(--success);
+    }
+    label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--text);
+      margin-bottom: 0.35rem;
+    }
+    input {
+      width: 100%;
+      padding: 0.7rem 0.9rem;
+      border: 1px solid var(--blue-border);
+      border-radius: 10px;
+      font-size: 1rem;
+      font-family: inherit;
+      margin-bottom: 1rem;
+      background: var(--white);
+      color: var(--text);
+    }
+    input:focus {
+      outline: none;
+      border-color: var(--blue-light);
+      box-shadow: 0 0 0 3px var(--blue-soft);
+    }
+    .btn {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      border: none;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      background: linear-gradient(135deg, var(--blue) 0%, var(--blue-light) 100%);
+      color: var(--white);
+      margin-top: 0.25rem;
+    }
+    .btn:hover {
+      opacity: 0.95;
+      box-shadow: 0 4px 14px rgba(2, 132, 199, 0.4);
+    }
+    .btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    .step-indicator {
+      display: flex;
+      justify-content: center;
+      gap: 0.5rem;
+      margin-bottom: 1.25rem;
+    }
+    .step-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--blue-border);
+      transition: background 0.2s;
+    }
+    .step-dot.done { background: var(--blue-light); }
+    .step-dot.current { background: var(--blue); transform: scale(1.2); }
+  </style>
+</head>
+<body>
+  <div style="position: fixed; top: 12px; right: 12px; z-index: 1000;">
+    <div id="googleBtnHeader"></div>
+  </div>
+  <a href="{{ url_for('index') }}" class="back">← Back to Solvency</a>
+  <div class="card">
+    <div class="logo-row">
+      <img src="{{ url_for('static', filename='logo.png') }}" alt="Solvency">
+    </div>
+    <h1>Sign up</h1>
+    <p class="sub">Create an account with your email. We’ll send a verification code, then you set a password.</p>
+
+    <div class="step-indicator">
+      <span class="step-dot current" id="dot1"></span>
+      <span class="step-dot" id="dot2"></span>
+      <span class="step-dot" id="dot3"></span>
+    </div>
+
+    <div id="msgBox"></div>
+
+    <div class="step active" id="step1">
+      <label for="email">Email</label>
+      <input id="email" type="email" placeholder="you@example.com" autocomplete="email">
+      <button type="button" class="btn" id="btnSendOtp">Send verification code</button>
+    </div>
+
+    <div class="step" id="step2">
+      <label for="otp">Verification code (check your email)</label>
+      <input id="otp" type="text" inputmode="numeric" maxlength="6" placeholder="000000" autocomplete="one-time-code">
+      <button type="button" class="btn" id="btnVerifyOtp">Verify and continue</button>
+    </div>
+
+    <div class="step" id="step3">
+      <label for="password">Choose a password (min 6 characters)</label>
+      <input id="password" type="password" placeholder="Your password" minlength="6">
+      <label for="password2">Confirm password</label>
+      <input id="password2" type="password" placeholder="Repeat password">
+      <button type="button" class="btn" id="btnSetPassword">Create account</button>
+    </div>
+  </div>
+
+  <script>
+    const step1 = document.getElementById('step1');
+    const step2 = document.getElementById('step2');
+    const step3 = document.getElementById('step3');
+    const dot1 = document.getElementById('dot1');
+    const dot2 = document.getElementById('dot2');
+    const dot3 = document.getElementById('dot3');
+    const msgBox = document.getElementById('msgBox');
+    const emailInput = document.getElementById('email');
+    const otpInput = document.getElementById('otp');
+    const passwordInput = document.getElementById('password');
+    const password2Input = document.getElementById('password2');
+
+    function showMsg(text, type) {
+      msgBox.innerHTML = '<div class="msg ' + type + '">' + text + '</div>';
+    }
+    function clearMsg() {
+      msgBox.innerHTML = '';
+    }
+    function setStep(step) {
+      step1.classList.remove('active');
+      step2.classList.remove('active');
+      step3.classList.remove('active');
+      dot1.classList.remove('current', 'done');
+      dot2.classList.remove('current', 'done');
+      dot3.classList.remove('current', 'done');
+      if (step >= 1) { step1.classList.add('active'); dot1.classList.add(step === 1 ? 'current' : 'done'); }
+      if (step >= 2) { step2.classList.add('active'); dot2.classList.add(step === 2 ? 'current' : 'done'); }
+      if (step >= 3) { step3.classList.add('active'); dot3.classList.add(step === 3 ? 'current' : 'done'); }
+    }
+
+    document.getElementById('btnSendOtp').addEventListener('click', async () => {
+      const email = emailInput.value.trim();
+      if (!email) { showMsg('Please enter your email.', 'error'); return; }
+      clearMsg();
+      const btn = document.getElementById('btnSendOtp');
+      btn.disabled = true;
+      btn.textContent = 'Sending…';
+      try {
+        const res = await fetch('/api/signup/send-otp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email })
+        });
+        const data = await res.json();
+        if (data.success) {
+          showMsg('Verification code sent to your email. Enter it below.', 'info');
+          setStep(2);
+          otpInput.value = '';
+          otpInput.focus();
+        } else {
+          showMsg(data.error || 'Failed to send code.', 'error');
+        }
+      } catch (e) {
+        showMsg('Something went wrong. Try again.', 'error');
+      }
+      btn.disabled = false;
+      btn.textContent = 'Send verification code';
+    });
+
+    document.getElementById('btnVerifyOtp').addEventListener('click', async () => {
+      const email = emailInput.value.trim();
+      const otp = otpInput.value.trim();
+      if (!email || !otp) { showMsg('Please enter the code from your email.', 'error'); return; }
+      clearMsg();
+      const btn = document.getElementById('btnVerifyOtp');
+      btn.disabled = true;
+      btn.textContent = 'Verifying…';
+      try {
+        const res = await fetch('/api/signup/verify-otp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, otp })
+        });
+        const data = await res.json();
+        if (data.success) {
+          showMsg('Verified. Set your password below.', 'success');
+          setStep(3);
+          passwordInput.value = '';
+          password2Input.value = '';
+          passwordInput.focus();
+        } else {
+          showMsg(data.error || 'Verification failed.', 'error');
+        }
+      } catch (e) {
+        showMsg('Something went wrong. Try again.', 'error');
+      }
+      btn.disabled = false;
+      btn.textContent = 'Verify and continue';
+    });
+
+    document.getElementById('btnSetPassword').addEventListener('click', async () => {
+      const password = passwordInput.value;
+      const password2 = password2Input.value;
+      if (password.length < 6) { showMsg('Password must be at least 6 characters.', 'error'); return; }
+      if (password !== password2) { showMsg('Passwords do not match.', 'error'); return; }
+      clearMsg();
+      const btn = document.getElementById('btnSetPassword');
+      btn.disabled = true;
+      btn.textContent = 'Creating account…';
+      try {
+        const res = await fetch('/api/signup/set-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password })
+        });
+        const data = await res.json();
+        if (data.success && data.redirect) {
+          window.location.href = data.redirect;
+          return;
+        }
+        showMsg(data.error || 'Could not create account.', 'error');
+      } catch (e) {
+        showMsg('Something went wrong. Try again.', 'error');
+      }
+      btn.disabled = false;
+      btn.textContent = 'Create account';
+    });
+  </script>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script>
+    function handleCredentialResponse(resp) {
+      const idToken = resp.credential;
+      fetch('/auth/google', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id_token: idToken })
+      }).then(r => r.json()).then(data => {
+        if (data.success && data.redirect) {
+          window.location.href = data.redirect;
+        } else {
+          alert(data.error || 'Google sign-in failed');
+        }
+      }).catch(() => alert('Network error during Google sign-in'));
+    }
+    window.addEventListener('load', function() {
+      const clientId = '{{ google_client_id or "" }}';
+      if (!clientId || typeof google === 'undefined' || !google.accounts || !google.accounts.id) return;
+      google.accounts.id.initialize({ client_id: clientId, callback: handleCredentialResponse });
+      google.accounts.id.renderButton(document.getElementById('googleBtnHeader'), { theme: 'outline', size: 'large', text: 'signin_with' });
+    });
+  </script>
+</body>
+</html>

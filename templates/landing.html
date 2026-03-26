@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Solvency – Your Financial Adviser</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --white: #ffffff;
+      --bg: #f8fafc;
+      --blue: #0284c7;
+      --blue-light: #0ea5e9;
+      --blue-soft: #e0f2fe;
+      --blue-border: #bae6fd;
+      --text: #0f172a;
+      --text-muted: #475569;
+      --shadow: 0 1px 3px rgba(2, 132, 199, 0.08);
+      --shadow-lg: 0 10px 40px rgba(2, 132, 199, 0.12);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Outfit', sans-serif;
+      background: linear-gradient(135deg, #f8fafc 0%, #e0f2fe 100%);
+      color: var(--text);
+      min-height: 100vh;
+      line-height: 1.6;
+    }
+
+    /* Animated background gradient */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: radial-gradient(circle at 20% 50%, rgba(2, 132, 199, 0.1) 0%, transparent 50%),
+                  radial-gradient(circle at 80% 80%, rgba(14, 165, 233, 0.08) 0%, transparent 50%);
+      pointer-events: none;
+      z-index: -1;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1rem 2rem;
+      max-width: 1200px;
+      margin: 0 auto;
+      border-bottom: 1px solid var(--blue-border);
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      box-shadow: var(--shadow);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    .brand:hover {
+      transform: scale(1.05);
+    }
+    .brand-logo {
+      width: 60px;
+      height: 60px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, var(--blue) 0%, var(--blue-light) 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 15px rgba(2, 132, 199, 0.25);
+    }
+    .brand-logo:hover {
+      transform: scale(1.1);
+      box-shadow: 0 8px 25px rgba(2, 132, 199, 0.4);
+    }
+    .brand-logo img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+    .brand-name {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1.85rem;
+      font-weight: 700;
+      color: var(--blue);
+    }
+    .brand-tag {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 0.1rem;
+    }
+
+    .nav {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    #googleBtn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.5rem;
+      border: 2px solid var(--blue);
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 1);
+      transition: all 0.3s ease;
+      min-width: auto;
+      min-height: auto;
+    }
+    #googleBtn:hover {
+      border-color: var(--blue-light);
+      background: rgba(224, 242, 254, 0.5);
+      box-shadow: 0 0 15px rgba(2, 132, 199, 0.2);
+    }
+    .nav a {
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 0.95rem;
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      transition: all 0.2s;
+    }
+    .nav .link-login {
+      color: var(--blue);
+      border: 1px solid var(--blue-border);
+      background: var(--white);
+    }
+    .nav .link-login:hover {
+      background: var(--blue-soft);
+      border-color: var(--blue-light);
+    }
+    .nav .link-signup {
+      background: linear-gradient(135deg, var(--blue) 0%, var(--blue-light) 100%);
+      color: var(--white);
+      border: 1px solid transparent;
+    }
+    .nav .link-signup:hover {
+      opacity: 0.92;
+      box-shadow: 0 4px 12px rgba(2, 132, 199, 0.35);
+    }
+
+    .hero {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 3rem 2rem 4rem;
+      text-align: center;
+    }
+    .hero h1 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 3rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 1rem;
+      background: linear-gradient(135deg, #0284c7, #0ea5e9);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hero .lead {
+      font-size: 1.2rem;
+      color: var(--text-muted);
+      max-width: 650px;
+      margin: 0 auto 3rem;
+      line-height: 1.8;
+    }
+
+    /* Logo Showcase Modal */
+    .logo-showcase {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(5px);
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      animation: fadeIn 0.3s ease;
+    }
+    .logo-showcase.active {
+      display: flex;
+    }
+    .logo-showcase-content {
+      background: var(--white);
+      border-radius: 20px;
+      padding: 2.5rem;
+      max-width: 500px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      animation: slideUp 0.3s ease;
+      position: relative;
+    }
+    .logo-showcase-close {
+      position: absolute;
+      top: 1.5rem;
+      right: 1.5rem;
+      width: 40px;
+      height: 40px;
+      border: none;
+      background: var(--bg);
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 1.5rem;
+      color: var(--text-muted);
+      transition: all 0.2s;
+    }
+    .logo-showcase-close:hover {
+      background: var(--blue-soft);
+      color: var(--blue);
+    }
+    .logo-showcase-image {
+      width: 280px;
+      height: 280px;
+      background: var(--blue-soft);
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 1.5rem;
+      overflow: hidden;
+      box-shadow: 0 10px 30px rgba(2, 132, 199, 0.2);
+    }
+    .logo-showcase-image img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      padding: 1rem;
+    }
+    .logo-showcase h2 {
+      font-size: 1.8rem;
+      color: var(--blue);
+      margin-bottom: 0.5rem;
+    }
+    .logo-showcase p {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      margin-bottom: 1.5rem;
+      line-height: 1.6;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    @keyframes slideUp {
+      from { transform: translateY(20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    .hero-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 2rem;
+      max-width: 1000px;
+      margin: 0 auto;
+      text-align: left;
+    }
+    .hero-card {
+      background: var(--white);
+      border: 2px solid transparent;
+      border-radius: 16px;
+      padding: 2rem;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, var(--blue), var(--blue-light));
+    }
+    .hero-card:hover {
+      box-shadow: 0 12px 30px rgba(2, 132, 199, 0.15);
+      border-color: var(--blue-light);
+      transform: translateY(-5px);
+    }
+    .hero-card h3 {
+      font-size: 1.15rem;
+      color: var(--blue);
+      margin-bottom: 0.75rem;
+      font-weight: 700;
+    }
+    .hero-card p {
+      font-size: 0.95rem;
+      color: var(--text-muted);
+      line-height: 1.7;
+    }
+
+    @media (max-width: 640px) {
+      .header { padding: 1rem; flex-wrap: wrap; gap: 0.75rem; }
+      .hero { padding: 2rem 1rem 3rem; }
+      .hero h1 { font-size: 1.85rem; }
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="brand" id="brandLogoTrigger">
+      <div class="brand-logo">
+        <img src="{{ url_for('static', filename='logo.png') }}" alt="Solvency">
+      </div>
+      <div>
+        <div class="brand-name">Solvency</div>
+        <div class="brand-tag">Your Financial Adviser</div>
+      </div>
+    </div>
+    <nav class="nav">
+      <div id="googleBtn"></div>
+      <a id="googleFallback" href="/login" class="link-signup" style="display:none;">Sign in with Google</a>
+    </nav>
+  </header>
+
+  <!-- Logo Showcase Modal -->
+  <div class="logo-showcase" id="logoShowcase">
+    <div class="logo-showcase-content">
+      <button class="logo-showcase-close" id="logoShowcaseClose">×</button>
+      <div class="logo-showcase-image">
+        <img src="{{ url_for('static', filename='logo.png') }}" alt="Solvency Logo">
+      </div>
+      <h2>Solvency</h2>
+      <p>Your trusted financial adviser. Making smarter decisions about your money with AI-powered insights and intelligent budget tracking.</p>
+    </div>
+  </div>
+
+  <main class="hero">
+    <h1>Track every rupee. Plan your future.</h1>
+    <p class="lead">
+      Solvency transforms your bank SMS into actionable financial insights. Get a clear picture of spending, savings and budgets — so you stay in control of your money.
+    </p>
+    <div class="hero-cards">
+      <div class="hero-card">
+        <h3>📱 SMS Intelligence</h3>
+        <p>Share your bank SMS alerts with us. Our smart parser automatically identifies transactions, extracts details, and categorizes spending across food, travel, shopping, bills and more.</p>
+      </div>
+      <div class="hero-card">
+        <h3>📊 Smart Analytics</h3>
+        <p>Dashboard with balance, monthly expenses, budget remaining and predicted end-of-month spend. Visual charts help you understand where every rupee goes.</p>
+      </div>
+      <div class="hero-card">
+        <h3>🔐 Your Data, Your Account</h3>
+        <p>Sign up with your email, verify with a code, set a password. Log in anytime to access your data from any device. Complete privacy and security.</p>
+      </div>
+    </div>
+  </main>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script>
+    // Logo Showcase Modal
+    const logoShowcase = document.getElementById('logoShowcase');
+    const brandLogoTrigger = document.getElementById('brandLogoTrigger');
+    const logoShowcaseClose = document.getElementById('logoShowcaseClose');
+
+    brandLogoTrigger.addEventListener('click', () => {
+      logoShowcase.classList.add('active');
+    });
+
+    logoShowcaseClose.addEventListener('click', () => {
+      logoShowcase.classList.remove('active');
+    });
+
+    logoShowcase.addEventListener('click', (e) => {
+      if (e.target === logoShowcase) {
+        logoShowcase.classList.remove('active');
+      }
+    });
+
+    // Google Sign-In
+    function handleCredentialResponse(response) {
+      const idToken = response.credential;
+      fetch('/auth/google', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id_token: idToken })
+      }).then(res => res.json()).then(data => {
+        if (data.success && data.redirect) {
+          window.location.href = data.redirect;
+        } else {
+          alert(data.error || 'Google sign-in failed');
+        }
+      }).catch(() => alert('Network error during Google sign-in'));
+    }
+    window.addEventListener('load', function() {
+      const clientId = '{{ google_client_id or "" }}';
+      const fallback = document.getElementById('googleFallback');
+      if (!clientId || typeof google === 'undefined' || !google.accounts || !google.accounts.id) {
+        fallback.style.display = 'inline-block';
+        return;
+      }
+      google.accounts.id.initialize({
+        client_id: clientId,
+        callback: handleCredentialResponse
+      });
+      google.accounts.id.renderButton(document.getElementById('googleBtn'), {
+        theme: 'outline',
+        size: 'large',
+        text: 'signin_with',
+        shape: 'rectangular'
+      });
+      fallback.style.display = 'none';
+      google.accounts.id.prompt();
+    });
+  </script>
+</body>
+</html>

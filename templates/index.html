@@ -1,0 +1,1658 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Solvency | Smart Budget & Expense Tracking</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Premium icons via Material Icons -->
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <style>
+    :root {
+      --bg-deep: #f8fafc;
+      --bg-card: #ffffff;
+      --bg-elevated: #f1f5f9;
+      --bg-hover: #e0f2fe;
+      --border: #bae6fd;
+      --text-primary: #0f172a;
+      --text-secondary: #475569;
+      --neon-cyan: #0284c7;
+      --neon-magenta: #0ea5e9;
+      --neon-lime: #16a34a;
+      --neon-amber: #f59e0b;
+      --neon-purple: #0369a1;
+      --neon-pink: #dc2626;
+      --debit-red: #dc2626;
+      --credit-green: #16a34a;
+      --glow-cyan: 0 0 18px rgba(2, 132, 199, 0.2);
+      --gradient-neon: linear-gradient(135deg, #0284c7 0%, #0ea5e9 100%);
+      --sidebar-width: 280px;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Outfit', sans-serif;
+      background: var(--bg-deep);
+      color: var(--text-primary);
+      min-height: 100vh;
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 100% 80% at 20% -20%, rgba(2, 132, 199, 0.06), transparent 50%),
+        radial-gradient(ellipse 80% 60% at 80% 80%, rgba(14, 165, 233, 0.05), transparent 50%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ========== SPLASH SCREEN ========== */
+    #splash {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: #ffffff;
+      transition: opacity 0.6s ease, transform 0.6s ease;
+    }
+    #splash.hide {
+      opacity: 0;
+      transform: scale(1.05);
+      pointer-events: none;
+    }
+    .splash-logo {
+      width: 200px;
+      height: 200px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 2rem;
+      animation: splashLogoFadeIn 0.8s ease-out, splashPulse 2s ease-in-out infinite 0.8s;
+      opacity: 0;
+      animation-fill-mode: forwards;
+    }
+    .splash-logo img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      filter: drop-shadow(0 0 20px rgba(2, 132, 199, 0.25));
+    }
+    .splash-title {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 2.5rem;
+      font-weight: 700;
+      margin-top: 1rem;
+      color: #0284c7;
+      letter-spacing: -0.02em;
+      opacity: 0;
+      animation: fadeInUp 0.6s ease-out 0.4s forwards;
+    }
+    .splash-sub {
+      color: var(--text-secondary);
+      font-size: 0.95rem;
+      margin-top: 0.5rem;
+      opacity: 0;
+      animation: fadeInUp 0.6s ease-out 0.6s forwards;
+    }
+    .splash-progress {
+      width: 300px;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 999px;
+      margin-top: 2.5rem;
+      overflow: hidden;
+      opacity: 0;
+      animation: fadeInUp 0.6s ease-out 0.8s forwards;
+    }
+    .splash-progress-bar {
+      height: 100%;
+      background: var(--gradient-neon);
+      border-radius: 999px;
+      width: 0%;
+      animation: progressLoad 2s ease-out 1s forwards;
+      box-shadow: 0 0 10px rgba(0, 245, 255, 0.5);
+    }
+    @keyframes splashLogoFadeIn {
+      from { opacity: 0; transform: scale(0.8); }
+      to { opacity: 1; transform: scale(1); }
+    }
+    @keyframes splashPulse {
+      0%, 100% { filter: drop-shadow(0 0 20px rgba(2, 132, 199, 0.25)); }
+      50% { filter: drop-shadow(0 0 30px rgba(14, 165, 233, 0.4)); }
+    }
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes progressLoad {
+      from { width: 0%; }
+      to { width: 100%; }
+    }
+
+    /* ========== LAYOUT: MAIN + SIDEBAR ========== */
+    .app-wrap {
+      display: flex;
+      min-height: 100vh;
+      position: relative;
+      z-index: 1;
+    }
+    .main-content {
+      flex: 1;
+      min-width: 0;
+      padding: 1.5rem;
+      padding-right: 1.5rem;
+      transition: padding-right 0.3s ease;
+    }
+    .main-content.sidebar-open { padding-right: calc(var(--sidebar-width) + 1rem); }
+
+    /* ========== RIGHT SIDEBAR ========== */
+    .sidebar {
+      position: fixed;
+      top: 0;
+      right: 0;
+      width: var(--sidebar-width);
+      height: 100vh;
+      background: var(--bg-card);
+      border-left: 1px solid var(--border);
+      box-shadow: -8px 0 32px rgba(0,0,0,0.3);
+      transform: translateX(100%);
+      transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+      z-index: 100;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+    }
+    .sidebar.open { transform: translateX(0); }
+    .sidebar-header {
+      padding: 1.25rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .sidebar-header span { font-weight: 600; color: var(--neon-cyan); }
+    .sidebar-toggle {
+      position: fixed;
+      top: 6.5rem;
+      right: 1.25rem;
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      color: var(--neon-cyan);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+      z-index: 101;
+      transition: all 0.2s;
+    }
+    .sidebar-toggle:hover { border-color: var(--neon-cyan); box-shadow: var(--glow-cyan); }
+    .sidebar-body { padding: 1rem; flex: 1; }
+    .sidebar-section {
+      margin-bottom: 1.25rem;
+    }
+    .sidebar-section h4 {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-secondary);
+      margin-bottom: 0.75rem;
+    }
+    .sidebar-stat {
+      background: var(--bg-deep);
+      border-radius: 10px;
+      padding: 0.75rem 1rem;
+      margin-bottom: 0.5rem;
+      border: 1px solid var(--border);
+    }
+    .sidebar-stat .label { font-size: 0.8rem; color: var(--text-secondary); }
+    .sidebar-stat .val { font-family: 'Space Grotesk', monospace; font-weight: 700; font-size: 1.1rem; }
+
+    /* ========== HEADER ========== */
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+      padding: 1rem 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .logo-icon {
+      width: 44px;
+      height: 44px;
+      background: var(--gradient-neon);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.35rem;
+      color: #ffffff;
+      box-shadow: 0 2px 12px rgba(2, 132, 199, 0.3);
+    }
+    .logo h1 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--neon-cyan);
+    }
+    .logo-row {
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 0.75rem;
+    }
+    .logo-row img {
+      width: 48px;
+      height: 48px;
+      object-fit: contain;
+    }
+    .personality-badge {
+      padding: 0.5rem 1rem;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+    .personality-saver { background: rgba(57, 255, 20, 0.15); color: var(--neon-lime); border: 1px solid rgba(57, 255, 20, 0.4); }
+    .personality-balanced { background: rgba(255, 189, 0, 0.15); color: var(--neon-amber); border: 1px solid rgba(255, 189, 0, 0.4); }
+    .personality-impulsive { background: rgba(255, 45, 146, 0.15); color: var(--neon-pink); border: 1px solid rgba(255, 45, 146, 0.4); }
+
+    /* Warning banner */
+    .warning-banner {
+      display: none;
+      background: linear-gradient(90deg, rgba(255, 45, 146, 0.2), rgba(255, 0, 170, 0.15));
+      border: 1px solid rgba(255, 45, 146, 0.5);
+      border-radius: 12px;
+      padding: 1rem 1.25rem;
+      margin-bottom: 1.5rem;
+      align-items: center;
+      gap: 1rem;
+    }
+    .warning-banner.active { display: flex; flex-wrap: wrap; }
+    .warning-banner .msg { flex: 1; font-weight: 500; color: var(--neon-pink); }
+    .warning-banner .percent { font-family: 'Space Grotesk', monospace; font-weight: 700; color: var(--neon-pink); }
+
+    /* Stats grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    .stat-card {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 1.25rem;
+      transition: all 0.3s;
+    }
+    .stat-card:hover { border-color: var(--neon-cyan); box-shadow: var(--glow-cyan); }
+    .stat-card h3 { font-size: 0.7rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.5rem; }
+    .stat-card .value { font-family: 'Space Grotesk', monospace; font-size: 1.4rem; font-weight: 700; }
+    .stat-card .value.positive { color: var(--credit-green); }
+    .stat-card .value.negative { color: var(--debit-red); }
+    .stat-card .value.neutral { color: var(--neon-cyan); }
+
+    /* Panels */
+    .panel {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      margin-bottom: 1rem;
+      overflow: hidden;
+      transition: all 0.3s ease;
+    }
+    .panel:hover { border-color: var(--neon-cyan); }
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 1.25rem;
+      cursor: pointer;
+      user-select: none;
+      transition: background 0.2s;
+    }
+    .panel-header:hover { background: var(--bg-hover); }
+    .panel-header .title { display: flex; align-items: center; gap: 0.5rem; font-weight: 600; font-size: 1rem; }
+    .panel-header .preview { font-size: 0.85rem; color: var(--text-secondary); }
+    .panel-header .chevron { transition: transform 0.3s; color: var(--neon-cyan); }
+    .panel.expanded .chevron { transform: rotate(180deg); }
+    .panel-body { max-height: 0; overflow: hidden; transition: max-height 0.4s ease; }
+    .panel.expanded .panel-body { max-height: 1400px; }
+    .panel-content { padding: 0 1.25rem 1.25rem; }
+
+    /* Buttons */
+    .btn {
+      padding: 0.65rem 1.25rem;
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s;
+      font-family: inherit;
+    }
+    .btn-primary { background: var(--gradient-neon); color: white; }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: var(--glow-cyan); }
+    .btn-secondary { background: var(--bg-elevated); color: var(--text-primary); border: 1px solid var(--border); }
+    .btn-secondary:hover { border-color: var(--neon-cyan); color: var(--neon-cyan); }
+
+    input, textarea {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text-primary);
+      padding: 0.65rem 1rem;
+      font-family: inherit;
+      font-size: 0.95rem;
+      transition: border-color 0.2s;
+    }
+    input:focus, textarea:focus {
+      outline: none;
+      border-color: var(--neon-cyan);
+      box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
+    }
+    textarea { width: 100%; min-height: 90px; resize: vertical; font-family: 'Space Grotesk', monospace; }
+
+    /* Debit / Credit preview windows */
+    .preview-window {
+      display: none;
+      border-radius: 14px;
+      padding: 1.25rem;
+      margin-top: 1rem;
+      border: 2px solid;
+    }
+    .preview-window.visible { display: block; }
+    .preview-window.debit {
+      background: rgba(255, 71, 87, 0.08);
+      border-color: var(--debit-red);
+    }
+    .preview-window.credit {
+      background: rgba(46, 213, 115, 0.08);
+      border-color: var(--credit-green);
+    }
+    .preview-window h5 { font-size: 0.9rem; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem; }
+    .preview-window.debit h5 { color: var(--debit-red); }
+    .preview-window.credit h5 { color: var(--credit-green); }
+    .preview-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+      gap: 1rem;
+      margin-top: 0.5rem;
+    }
+    .preview-grid div span { font-size: 0.75rem; color: var(--text-secondary); }
+    .preview-grid div .v { font-weight: 600; margin-top: 0.25rem; }
+    .preview-window .type-badge {
+      padding: 0.25rem 0.6rem;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+    .preview-window.debit .type-badge { background: rgba(255, 71, 87, 0.3); color: var(--debit-red); }
+    .preview-window.credit .type-badge { background: rgba(46, 213, 115, 0.3); color: var(--credit-green); }
+
+    /* Transaction list items - debit vs credit */
+    .list-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.75rem 1rem;
+      background: var(--bg-deep);
+      border-radius: 10px;
+      margin-bottom: 0.5rem;
+      border: 1px solid var(--border);
+    }
+    .list-item.debit { border-left: 3px solid var(--debit-red); }
+    .list-item.credit { border-left: 3px solid var(--credit-green); }
+    .list-item .merchant { font-weight: 600; }
+    .list-item .amount.debit { color: var(--debit-red); font-family: 'Space Grotesk', monospace; }
+    .list-item .amount.credit { color: var(--credit-green); font-family: 'Space Grotesk', monospace; }
+    .list-item .badge { font-size: 0.75rem; }
+    .list-item .badge.debit-badge { color: var(--debit-red); }
+    .list-item .badge.credit-badge { color: var(--credit-green); }
+    .empty-state { text-align: center; padding: 1.5rem; color: var(--text-secondary); }
+
+    .charts-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    @media (max-width: 900px) { .charts-row { grid-template-columns: 1fr; } }
+    .chart-card {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 1.25rem;
+    }
+    .chart-card h4 { font-size: 0.95rem; margin-bottom: 1rem; }
+    .chart-container { position: relative; height: 240px; }
+
+    .simulator-row { display: flex; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 1rem; }
+    .simulator-row input { flex: 1; min-width: 200px; }
+    .simulator-result { display: none; background: rgba(2, 132, 199, 0.08); border: 1px solid var(--border); border-radius: 12px; padding: 1rem; margin-top: 1rem; }
+    .simulator-result.visible { display: block; }
+    .simulator-result .savings { font-size: 1.5rem; font-weight: 700; color: var(--neon-lime); }
+
+    .fraud-item { border-left: 3px solid var(--neon-amber); background: rgba(255, 189, 0, 0.05); }
+
+    /* FD cards */
+    .fd-card {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1rem;
+      margin-bottom: 0.75rem;
+    }
+    .fd-card h5 { font-size: 0.9rem; margin-bottom: 0.5rem; color: var(--neon-cyan); }
+    .fd-card .maturity { font-size: 1.1rem; font-weight: 700; color: var(--neon-lime); }
+    .fd-form { display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: flex-end; margin-bottom: 1rem; }
+    .fd-form label { display: block; font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 0.25rem; }
+    .fd-form input { width: 100px; }
+
+    .toast {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      padding: 1rem 1.5rem;
+      border-radius: 12px;
+      font-weight: 500;
+      z-index: 1000;
+      animation: slideIn 0.3s ease;
+    }
+    .toast.success { background: var(--credit-green); color: #fff; }
+    .toast.error { background: var(--debit-red); color: #fff; }
+    @keyframes slideIn {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+
+    /* ========== PANEL COLOR CODING ========== */
+    .panel-header .title {
+      color: var(--text-primary);
+      transition: color 0.2s ease;
+    }
+
+    /* SMS/Transaction Panel - Purple/Violet */
+    #panelAdd {
+      border-left: 4px solid #8b5cf6;
+    }
+    #panelAdd .panel-header {
+      background: linear-gradient(90deg, rgba(139, 92, 246, 0.08), transparent);
+      border-bottom: 1px solid rgba(139, 92, 246, 0.3);
+    }
+    #panelAdd .title { color: #7c3aed; font-weight: 700; }
+    #panelAdd:hover { border-left-color: #7c3aed; }
+
+    /* Budget Simulator Panel - Green */
+    #panelSimulator {
+      border-left: 4px solid #10b981;
+    }
+    #panelSimulator .panel-header {
+      background: linear-gradient(90deg, rgba(16, 185, 129, 0.08), transparent);
+      border-bottom: 1px solid rgba(16, 185, 129, 0.3);
+    }
+    #panelSimulator .title { color: #059669; font-weight: 700; }
+    #panelSimulator:hover { border-left-color: #059669; }
+
+    /* Analytics Panel - Sky Blue */
+    #panelCharts {
+      border-left: 4px solid #0ea5e9;
+    }
+    #panelCharts .panel-header {
+      background: linear-gradient(90deg, rgba(14, 165, 233, 0.08), transparent);
+      border-bottom: 1px solid rgba(14, 165, 233, 0.3);
+    }
+    #panelCharts .title { color: #0284c7; font-weight: 700; }
+    #panelCharts:hover { border-left-color: #0284c7; }
+
+    /* Smart Insights Panel - Amber */
+    #panelInsights {
+      border-left: 4px solid #f59e0b;
+    }
+    #panelInsights .panel-header {
+      background: linear-gradient(90deg, rgba(245, 158, 11, 0.08), transparent);
+      border-bottom: 1px solid rgba(245, 158, 11, 0.3);
+    }
+    #panelInsights .title { color: #d97706; font-weight: 700; }
+    #panelInsights:hover { border-left-color: #d97706; }
+
+    /* Fixed Deposits Panel - Teal/Emerald */
+    #panelFD {
+      border-left: 4px solid #14b8a6;
+    }
+    #panelFD .panel-header {
+      background: linear-gradient(90deg, rgba(20, 184, 166, 0.08), transparent);
+      border-bottom: 1px solid rgba(20, 184, 166, 0.3);
+    }
+    #panelFD .title { color: #0d9488; font-weight: 700; }
+    #panelFD:hover { border-left-color: #0d9488; }
+
+    /* Fraud/Waste Detector Panel - Red */
+    #panelFraud {
+      border-left: 4px solid #ef4444;
+    }
+    #panelFraud .panel-header {
+      background: linear-gradient(90deg, rgba(239, 68, 68, 0.08), transparent);
+      border-bottom: 1px solid rgba(239, 68, 68, 0.3);
+    }
+    #panelFraud .title { color: #dc2626; font-weight: 700; }
+    #panelFraud:hover { border-left-color: #dc2626; }
+
+    /* Transaction History Panel - Slate */
+    #panelTransactions {
+      border-left: 4px solid #64748b;
+    }
+    #panelTransactions .panel-header {
+      background: linear-gradient(90deg, rgba(100, 116, 139, 0.08), transparent);
+      border-bottom: 1px solid rgba(100, 116, 139, 0.3);
+    }
+    #panelTransactions .title { color: #475569; font-weight: 700; }
+    #panelTransactions:hover { border-left-color: #475569; }
+
+    /* Repeated Spending Panel - Rose */
+    #panelRepeated {
+      border-left: 4px solid #f43f5e;
+    }
+    #panelRepeated .panel-header {
+      background: linear-gradient(90deg, rgba(244, 63, 94, 0.08), transparent);
+      border-bottom: 1px solid rgba(244, 63, 94, 0.3);
+    }
+    #panelRepeated .title { color: #e11d48; font-weight: 700; }
+    #panelRepeated:hover { border-left-color: #e11d48; }
+
+    /* Settings Panel - Indigo */
+    #panelSettings {
+      border-left: 4px solid #6366f1;
+    }
+    #panelSettings .panel-header {
+      background: linear-gradient(90deg, rgba(99, 102, 241, 0.08), transparent);
+      border-bottom: 1px solid rgba(99, 102, 241, 0.3);
+    }
+    #panelSettings .title { color: #4f46e5; font-weight: 700; }
+    #panelSettings:hover { border-left-color: #4f46e5; }
+
+    /* ========== AI CHATBOT STYLES ========== */
+    .chatbot-widget {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      width: 380px;
+      height: 550px;
+      background: var(--bg-card);
+      border-radius: 20px;
+      box-shadow: 0 15px 50px rgba(0, 0, 0, 0.2);
+      display: flex;
+      flex-direction: column;
+      transform: scale(0.8) translateY(30px);
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      z-index: 500;
+      border: 1px solid var(--border);
+    }
+    .chatbot-widget.open {
+      transform: scale(1) translateY(0);
+      opacity: 1;
+      pointer-events: all;
+    }
+    .chatbot-header {
+      background: linear-gradient(135deg, #0284c7 0%, #0ea5e9 100%);
+      color: white;
+      padding: 1.25rem 1.5rem;
+      border-radius: 20px 20px 0 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-weight: 700;
+      font-size: 1.05rem;
+      box-shadow: 0 4px 12px rgba(2, 132, 199, 0.2);
+    }
+    .chatbot-header .close-btn {
+      background: rgba(255, 255, 255, 0.25);
+      border: none;
+      color: white;
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 1.4rem;
+      transition: all 0.2s;
+      font-weight: 700;
+    }
+    .chatbot-header .close-btn:hover {
+      background: rgba(255, 255, 255, 0.4);
+      transform: scale(1.05);
+    }
+    .chatbot-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      background: linear-gradient(to bottom, transparent, rgba(2, 132, 199, 0.02));
+    }
+    .chat-message {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 0.5rem;
+      animation: slideInChat 0.3s ease;
+    }
+    .chat-message.user {
+      justify-content: flex-end;
+    }
+    .chat-message-bubble {
+      max-width: 85%;
+      padding: 0.85rem 1.1rem;
+      border-radius: 14px;
+      font-size: 0.9rem;
+      line-height: 1.5;
+      word-wrap: break-word;
+    }
+    .chat-message.ai .chat-message-bubble {
+      background: var(--bg-elevated);
+      color: var(--text-primary);
+      border-left: 4px solid var(--neon-cyan);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+    }
+    .chat-message.user .chat-message-bubble {
+      background: linear-gradient(135deg, #0284c7, #0ea5e9);
+      color: white;
+      box-shadow: 0 2px 8px rgba(2, 132, 199, 0.25);
+    }
+    .chatbot-input-area {
+      border-top: 1px solid var(--border);
+      padding: 1rem 1.25rem;
+      display: flex;
+      gap: 0.75rem;
+      background: var(--white);
+      border-radius: 0 0 20px 20px;
+    }
+    .chatbot-input-area input {
+      flex: 1;
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      padding: 0.75rem 1rem;
+      font-size: 0.9rem;
+      font-family: inherit;
+      transition: all 0.2s;
+    }
+    .chatbot-input-area input:focus {
+      outline: none;
+      border-color: var(--neon-cyan);
+      box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.1);
+    }
+    .chatbot-send-btn {
+      background: linear-gradient(135deg, #0284c7, #0ea5e9);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      padding: 0.75rem 1.2rem;
+      cursor: pointer;
+      font-weight: 700;
+      transition: all 0.2s;
+      box-shadow: 0 2px 8px rgba(2, 132, 199, 0.2);
+    }
+    .chatbot-send-btn:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3);
+    }
+    .chatbot-send-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    .chatbot-toggle-btn {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      width: 70px;
+      height: 70px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #0284c7 0%, #0ea5e9 100%);
+      border: 3px solid rgba(255, 255, 255, 0.3);
+      color: white;
+      font-size: 1.8rem;
+      cursor: pointer;
+      box-shadow: 0 8px 25px rgba(2, 132, 199, 0.35), inset 0 -2px 6px rgba(0, 0, 0, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      z-index: 499;
+    }
+    .chatbot-toggle-btn:hover {
+      transform: scale(1.12) translateY(-3px);
+      box-shadow: 0 12px 35px rgba(2, 132, 199, 0.45), inset 0 -2px 6px rgba(0, 0, 0, 0.1);
+      border-color: rgba(255, 255, 255, 0.5);
+    }
+    .chatbot-toggle-btn:active {
+      transform: scale(0.98);
+    }
+    .chatbot-toggle-btn.hidden {
+      display: none;
+    }
+    @keyframes slideInChat {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @media (max-width: 480px) {
+      .chatbot-widget {
+        width: 100%;
+        height: 100%;
+        bottom: 0;
+        right: 0;
+        border-radius: 0;
+        transform: scale(0.9) translateY(100%);
+      }
+      .chatbot-widget.open {
+        transform: scale(1) translateY(0);
+      }
+    }
+
+    /* ========== APP NAVIGATION TABS ========== */
+    .app-nav-tabs {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 90px;
+      background: var(--bg-card);
+      border-top: 2px solid var(--border);
+      display: flex;
+      justify-content: center;
+      gap: 0.75rem;
+      padding: 0.75rem;
+      z-index: 200;
+      box-shadow: 0 -8px 20px rgba(0, 0, 0, 0.1);
+      overflow-x: auto;
+    }
+    .nav-tab {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      padding: 0.75rem 1.5rem;
+      border-radius: 14px;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      background: rgba(255, 255, 255, 0.5);
+      border: 1.5px solid transparent;
+      font-family: inherit;
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      font-weight: 700;
+      min-width: 80px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+    }
+    .nav-tab:hover {
+      background: var(--bg-elevated);
+      color: var(--neon-cyan);
+      border-color: var(--blue-border);
+      transform: translateY(-3px);
+      box-shadow: 0 4px 12px rgba(2, 132, 199, 0.2);
+    }
+    .nav-tab.active {
+      background: linear-gradient(135deg, rgba(2, 132, 199, 0.15), rgba(14, 165, 233, 0.1));
+      color: var(--neon-cyan);
+      border-color: var(--neon-cyan);
+      box-shadow: 0 4px 16px rgba(2, 132, 199, 0.25);
+      font-weight: 700;
+    }
+    .nav-tab-icon {
+      font-size: 1.9rem;
+      line-height: 1;
+      transition: all 0.3s ease;
+      /* use material icons font if available */
+      font-family: 'Material Icons';
+      font-weight: normal;
+      font-style: normal;
+      -webkit-font-feature-settings: 'liga';
+      -webkit-font-smoothing: antialiased;
+    }
+    .nav-tab:hover .nav-tab-icon {
+      transform: scale(1.2);
+      color: var(--neon-cyan);
+    }
+    .nav-tab.active .nav-tab-icon {
+      transform: scale(1.3);
+
+    /* Adjust main content for bottom nav */
+    .main-content {
+      padding-bottom: calc(90px + 2rem);
+    }
+
+    /* Tab content sections */
+    .tab-content {
+      display: none;
+    }
+    .tab-content.active {
+      display: block;
+      animation: fadeInTab 0.3s ease;
+    }
+    @keyframes fadeInTab {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Splash Screen -->
+  <div id="splash">
+    <div class="splash-logo" id="splashLogo">
+      <img src="/static/logo.png" alt="Solvency Logo">
+    </div>
+    <h1 class="splash-title">Solvency</h1>
+    <p class="splash-sub">Your Financial Adviser</p>
+    <div class="splash-progress">
+      <div class="splash-progress-bar"></div>
+    </div>
+  </div>
+
+  <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle sidebar">☰</button>
+
+  <div class="app-wrap">
+    <main class="main-content" id="mainContent">
+      <header>
+        <div class="logo-row">
+          <img src="{{ url_for('static', filename='logo.png') }}" alt="Solvency">
+        </div>
+        <div style="display: flex; align-items: center; gap: 1rem;">
+          <div id="personalityBadge" class="personality-badge personality-balanced">Loading...</div>
+          <a href="{{ url_for('logout') }}" class="btn btn-secondary" style="text-decoration: none;">Log out</a>
+        </div>
+      </header>
+
+      <div id="warningBanner" class="warning-banner">
+        <span class="msg" id="warningMsg">Budget alert</span>
+        <span class="percent" id="warningPercent"></span>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <h3>Current Balance</h3>
+          <div id="currentBalance" class="value neutral">₹0</div>
+        </div>
+        <div class="stat-card">
+          <h3>Total Expenses (Month)</h3>
+          <div id="totalExpenses" class="value neutral">₹0</div>
+        </div>
+        <div class="stat-card">
+          <h3>Credits (Month)</h3>
+          <div id="monthlyCredits" class="value positive">₹0</div>
+        </div>
+        <div class="stat-card">
+          <h3>Budget Remaining</h3>
+          <div id="budgetRemaining" class="value positive">₹0</div>
+        </div>
+        <div class="stat-card">
+          <h3>Predicted EOM</h3>
+          <div id="predictedEom" class="value neutral">₹0</div>
+        </div>
+        <div class="stat-card">
+          <h3>Financial Health Score</h3>
+          <div id="healthScore" class="value neutral">0</div>
+          <div id="healthCategory" style="font-size: 0.85rem; margin-top: 0.25rem; color: var(--text-secondary);">-</div>
+        </div>
+      </div>
+
+      <!-- Add Transaction: Debit / Credit aware -->
+      <div class="panel" id="panelAdd">
+        <div class="panel-header">
+          <span class="title">📱 Add Transaction from SMS</span>
+          <span class="preview">Paste debit or credit SMS</span>
+          <span class="chevron">▼</span>
+        </div>
+        <div class="panel-body">
+          <div class="panel-content">
+            <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1rem;">
+              Paste bank SMS. <strong>Debit</strong> (spent/debited) will reduce balance; <strong>Credit</strong> (credited/received) will increase it.
+            </p>
+            <textarea id="smsInput" placeholder="e.g. INR 450 spent on ZOMATO via UPI on 03-02-26&#10;e.g. Rs 50000 credited to a/c on 01-02-26"></textarea>
+            <div style="display: flex; gap: 0.75rem; margin-top: 1rem;">
+              <button class="btn btn-secondary" id="btnParse">Preview</button>
+              <button class="btn btn-primary" id="btnSubmit">Add Transaction</button>
+            </div>
+            <div id="extractedPreviewDebit" class="preview-window debit">
+              <h5><span class="type-badge">Debit</span> Money going out</h5>
+              <div class="preview-grid">
+                <div><span>Amount</span><div id="previewAmountD" class="v">-</div></div>
+                <div><span>Merchant</span><div id="previewMerchantD" class="v">-</div></div>
+                <div><span>Category</span><div id="previewCategoryD" class="v">-</div></div>
+                <div><span>Date</span><div id="previewDateD" class="v">-</div></div>
+              </div>
+            </div>
+            <div id="extractedPreviewCredit" class="preview-window credit">
+              <h5><span class="type-badge">Credit</span> Money received</h5>
+              <div class="preview-grid">
+                <div><span>Amount</span><div id="previewAmountC" class="v">-</div></div>
+                <div><span>From</span><div id="previewMerchantC" class="v">-</div></div>
+                <div><span>Date</span><div id="previewDateC" class="v">-</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Budget Simulator -->
+      <div class="panel" id="panelSimulator">
+        <div class="panel-header">
+          <span class="title">🎯 Budget Simulator</span>
+          <span class="preview">See savings if you cut spending</span>
+          <span class="chevron">▼</span>
+        </div>
+        <div class="panel-body">
+          <div class="panel-content">
+            <div class="simulator-row">
+              <input type="text" id="simulateInput" placeholder="reduce food by 100 per day">
+              <button class="btn btn-primary" id="btnSimulate">Simulate</button>
+            </div>
+            <div id="simulatorResult" class="simulator-result">
+              <h5>Projected Savings</h5>
+              <div class="savings" id="simulatorSavings">₹0</div>
+              <p style="font-size: 0.85rem; margin-top: 0.5rem;" id="simulatorDetail"></p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Charts -->
+      <div class="panel expanded" id="panelCharts">
+        <div class="panel-header">
+          <span class="title">📊 Analytics</span>
+          <span class="preview">Category • Budget vs spent</span>
+          <span class="chevron">▼</span>
+        </div>
+        <div class="panel-body">
+          <div class="panel-content">
+            <div class="charts-row" style="margin-bottom: 1rem;">
+              <div class="chart-card">
+                <h4>Category-Wise Spending</h4>
+                <div class="chart-container"><canvas id="categoryChart"></canvas></div>
+              </div>
+              <div class="chart-card">
+                <h4>Budget vs Spent</h4>
+                <div class="chart-container"><canvas id="budgetChart"></canvas></div>
+              </div>
+            </div>
+            <div class="chart-card">
+              <h4>Daily Spending Trend</h4>
+              <div class="chart-container" style="height: 200px;"><canvas id="dailyChart"></canvas></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel" id="panelInsights">
+        <div class="panel-header">
+          <span class="title">📊 Smart Insights</span>
+          <span class="preview" id="aiInsightsPreview">Loading insights</span>
+          <span class="chevron">▼</span>
+        </div>
+        <div class="panel-body">
+          <div class="panel-content">
+            <ul id="aiInsights"></ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- Fixed Deposits -->
+      <div class="panel" id="panelFD">
+        <div class="panel-header">
+          <span class="title">🏦 Fixed Deposits</span>
+          <span class="preview" id="fdPreview">Track FDs & interest</span>
+          <span class="chevron">▼</span>
+        </div>
+        <div class="panel-body">
+          <div class="panel-content">
+            <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1rem;">Add your FDs to see maturity amount at given interest rate.</p>
+            <div class="fd-form">
+              <div>
+                <label>Amount (₹)</label>
+                <input type="number" id="fdAmount" placeholder="100000">
+              </div>
+              <div>
+                <label>Interest % p.a.</label>
+                <input type="number" id="fdRate" placeholder="7" step="0.1">
+              </div>
+              <div>
+                <label>Tenure (months)</label>
+                <input type="number" id="fdTenure" placeholder="12">
+              </div>
+              <div>
+                <label>Start date</label>
+                <input type="date" id="fdStart">
+              </div>
+              <button class="btn btn-primary" id="btnAddFD">Add FD</button>
+            </div>
+            <div id="fdList"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Fraud / Waste -->
+      <div class="panel" id="panelFraud">
+        <div class="panel-header">
+          <span class="title">🔍 Fraud / Waste Detector</span>
+          <span class="preview" id="fraudPreview">Small repeated txns</span>
+          <span class="chevron">▼</span>
+        </div>
+        <div class="panel-body">
+          <div class="panel-content">
+            <div id="fraudList"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent Transactions (with debit/credit and balance) -->
+      <div class="panel" id="panelTransactions">
+        <div class="panel-header">
+          <span class="title">📋 Transaction History</span>
+          <span class="preview" id="txPreview">Debits & credits</span>
+          <span class="chevron">▼</span>
+        </div>
+        <div class="panel-body">
+          <div class="panel-content">
+            <div id="transactionsList"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Repeated Merchants -->
+      <div class="panel" id="panelRepeated">
+        <div class="panel-header">
+          <span class="title">🔄 Repeated Spending</span>
+          <span class="preview" id="repeatedPreview">Same merchant</span>
+          <span class="chevron">▼</span>
+        </div>
+        <div class="panel-body">
+          <div class="panel-content">
+            <div id="repeatedList"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Settings -->
+      <div class="panel" id="panelSettings">
+        <div class="panel-header">
+          <span class="title">⚙️ Settings</span>
+          <span class="preview">Budget, income, opening balance</span>
+          <span class="chevron">▼</span>
+        </div>
+        <div class="panel-body">
+          <div class="panel-content">
+            <div style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: center;">
+              <label>Starting Balance (₹)</label>
+              <input type="number" id="inputStartingBalance" placeholder="0" style="width: 120px;">
+              <label>Monthly Budget (₹)</label>
+              <input type="number" id="inputBudget" placeholder="50000" style="width: 120px;">
+              <label>Monthly Income (₹)</label>
+              <input type="number" id="inputIncome" placeholder="60000" style="width: 120px;">
+              <button class="btn btn-secondary" id="btnSaveSettings">Save</button>
+            </div>
+            <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border);">
+              <button class="btn btn-secondary" id="btnResetAll" style="border-color: var(--debit-red); color: var(--debit-red);">Reset Everything to Zero</button>
+              <span style="font-size: 0.8rem; color: var(--text-secondary); margin-left: 0.5rem;">Deletes all transactions, FDs; resets settings</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <span>Quick view</span>
+      </div>
+      <div class="sidebar-body">
+        <div class="sidebar-section">
+          <h4>Balance & flow</h4>
+          <div class="sidebar-stat">
+            <div class="label">Current balance</div>
+            <div class="val" id="sidebarBalance">₹0</div>
+          </div>
+          <div class="sidebar-stat">
+            <div class="label">Expenses this month</div>
+            <div class="val" id="sidebarExpenses">₹0</div>
+          </div>
+          <div class="sidebar-stat">
+            <div class="label">Credits this month</div>
+            <div class="val" id="sidebarCredits">₹0</div>
+          </div>
+        </div>
+        <div class="sidebar-section">
+          <h4>Personality</h4>
+          <div class="sidebar-stat">
+            <div class="val" id="sidebarPersonality">-</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- APP NAVIGATION TABS -->
+    <div class="app-nav-tabs">
+      <button class="nav-tab active" data-tab="dashboard" id="navDashboard">
+        <span class="nav-tab-icon material-icons">dashboard</span>
+        <div>Dashboard</div>
+      </button>
+      <button class="nav-tab" data-tab="add-transaction" id="navAddTransaction">
+        <span class="nav-tab-icon material-icons">sms</span>
+        <div>Add SMS</div>
+      </button>
+      <button class="nav-tab" data-tab="analytics" id="navAnalytics">
+        <span class="nav-tab-icon material-icons">analytics</span>
+        <div>Analytics</div>
+      </button>
+      <button class="nav-tab" data-tab="tools" id="navTools">
+        <span class="nav-tab-icon material-icons">build</span>
+        <div>Tools</div>
+      </button>
+      <button class="nav-tab" data-tab="settings" id="navSettings">
+        <span class="nav-tab-icon material-icons">settings</span>
+        <div>Settings</div>
+      </button>
+    </div>
+  </div>
+
+  <div id="toast" class="toast" style="display: none;"></div>
+
+  <!-- AI Finance Chatbot Widget -->
+  <button class="chatbot-toggle-btn" id="chatbotToggle" title="Chat with Finance Advisor">💬</button>
+  <div class="chatbot-widget" id="chatbotWidget">
+    <div class="chatbot-header">
+      <span>💡 Finance Advisor</span>
+      <button class="close-btn" id="chatbotClose">×</button>
+    </div>
+    <div class="chatbot-messages" id="chatbotMessages"></div>
+    <div class="chatbot-input-area">
+      <input type="text" id="chatbotInput" placeholder="Ask about budget, savings, spending..." autocomplete="off">
+      <button class="chatbot-send-btn" id="chatbotSend">Send</button>
+    </div>
+  </div>
+
+  <script>
+    Chart.defaults.color = '#8b8d9a';
+    Chart.defaults.borderColor = '#1e2030';
+
+    const NEON_COLORS = {
+      Food: '#39ff14',
+      Travel: '#00f5ff',
+      Shopping: '#bf00ff',
+      Bills: '#ffbd00',
+      Other: '#8b8d9a'
+    };
+
+    let categoryChart, budgetChart, dailyChart;
+
+    function formatINR(n) {
+      return '₹' + Number(n).toLocaleString('en-IN', { maximumFractionDigits: 0 });
+    }
+
+    function showToast(message, type = 'success') {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.className = 'toast ' + type;
+      toast.style.display = 'block';
+      setTimeout(() => { toast.style.display = 'none'; }, 3000);
+    }
+
+    // Splash: hide after progress bar completes (3s total: 1s delay + 2s animation)
+    setTimeout(() => {
+      document.getElementById('splash').classList.add('hide');
+      setTimeout(() => {
+        document.getElementById('splash').style.display = 'none';
+      }, 650);
+    }, 3000);
+
+    // Sidebar toggle
+    document.getElementById('sidebarToggle').addEventListener('click', () => {
+      document.getElementById('sidebar').classList.toggle('open');
+      document.getElementById('mainContent').classList.toggle('sidebar-open');
+    });
+
+    document.querySelectorAll('.panel').forEach(panel => {
+      panel.querySelector('.panel-header').addEventListener('click', () => {
+        panel.classList.toggle('expanded');
+      });
+    });
+
+    async function loadDashboard() {
+      try {
+        const res = await fetch('/api/dashboard');
+        const data = await res.json();
+
+        document.getElementById('currentBalance').textContent = formatINR(data.current_balance);
+        document.getElementById('currentBalance').className = 'value ' + (data.current_balance >= 0 ? 'positive' : 'negative');
+        document.getElementById('totalExpenses').textContent = formatINR(data.total_expenses);
+        document.getElementById('monthlyCredits').textContent = formatINR(data.monthly_credits || 0);
+        const remaining = data.budget_remaining;
+        document.getElementById('budgetRemaining').textContent = formatINR(remaining);
+        document.getElementById('budgetRemaining').className = 'value ' + (remaining >= 0 ? 'positive' : 'negative');
+        document.getElementById('predictedEom').textContent = formatINR(data.predicted_eom_expense);
+
+        const health = data.financial_health || {};
+        const healthScore = typeof health.score === 'number' ? health.score : 0;
+        const healthCategory = health.category || '-';
+        const healthScoreEl = document.getElementById('healthScore');
+        const healthCategoryEl = document.getElementById('healthCategory');
+        if (healthScoreEl && healthCategoryEl) {
+          healthScoreEl.textContent = healthScore;
+          let cls = 'neutral';
+          if (healthCategory === 'Excellent') cls = 'positive';
+          else if (healthCategory === 'Risky') cls = 'negative';
+          healthScoreEl.className = 'value ' + cls;
+          healthCategoryEl.textContent = healthCategory;
+        }
+
+        document.getElementById('sidebarBalance').textContent = formatINR(data.current_balance);
+        document.getElementById('sidebarExpenses').textContent = formatINR(data.total_expenses);
+        document.getElementById('sidebarCredits').textContent = formatINR(data.monthly_credits || 0);
+        document.getElementById('sidebarPersonality').textContent = data.spending_personality || '-';
+
+        const badge = document.getElementById('personalityBadge');
+        badge.textContent = data.spending_personality;
+        badge.className = 'personality-badge personality-' + (data.spending_personality || '').toLowerCase();
+
+        const warn = data.budget_warning || {};
+        const warnEl = document.getElementById('warningBanner');
+        if (warn.active) {
+          warnEl.classList.add('active');
+          document.getElementById('warningMsg').textContent = warn.message || 'Budget warning';
+          document.getElementById('warningPercent').textContent = warn.percent + '% used';
+        } else {
+          warnEl.classList.remove('active');
+        }
+
+        document.getElementById('inputBudget').value = data.monthly_budget || '';
+        document.getElementById('inputIncome').value = data.monthly_income || '';
+        document.getElementById('inputStartingBalance').value = data.starting_balance ?? '';
+
+        const catData = data.category_breakdown || {};
+        const catLabels = Object.keys(catData);
+        const catValues = Object.values(catData);
+        const catColors = catLabels.map(l => NEON_COLORS[l] || NEON_COLORS.Other);
+        if (categoryChart) categoryChart.destroy();
+        categoryChart = new Chart(document.getElementById('categoryChart'), {
+          type: 'doughnut',
+          data: { labels: catLabels, datasets: [{ data: catValues, backgroundColor: catColors, borderColor: '#0c0d12', borderWidth: 2, hoverOffset: 8 }] },
+          options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right' } } }
+        });
+
+        if (budgetChart) budgetChart.destroy();
+        budgetChart = new Chart(document.getElementById('budgetChart'), {
+          type: 'bar',
+          data: {
+            labels: ['Budget', 'Spent'],
+            datasets: [{ label: 'Amount (₹)', data: [data.monthly_budget, data.total_expenses], backgroundColor: ['rgba(0, 245, 255, 0.4)', data.total_expenses > data.monthly_budget ? 'rgba(255, 71, 87, 0.6)' : 'rgba(191, 0, 255, 0.5)'], borderWidth: 0 }]
+          },
+          options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } }
+        });
+
+        const daily = data.daily_spending || [];
+        if (dailyChart) dailyChart.destroy();
+        dailyChart = new Chart(document.getElementById('dailyChart'), {
+          type: 'line',
+          data: {
+            labels: daily.map(d => d.date.slice(8)),
+            datasets: [{ label: 'Daily Spend (₹)', data: daily.map(d => d.total), borderColor: '#00f5ff', backgroundColor: 'rgba(0, 245, 255, 0.1)', fill: true, tension: 0.4 }]
+          },
+          options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } }
+        });
+
+        const fraud = data.fraud_waste_alerts || [];
+        document.getElementById('fraudPreview').textContent = fraud.length ? fraud.length + ' alert(s)' : 'No alerts';
+        const fraudEl = document.getElementById('fraudList');
+        if (fraud.length === 0) {
+          fraudEl.innerHTML = '<div class="empty-state">No small repeated transactions detected</div>';
+        } else {
+          fraudEl.innerHTML = fraud.map(f =>
+            `<div class="list-item fraud-item">
+              <span><span class="merchant">${f.merchant}</span> <span class="badge">${f.count}× under ₹100</span></span>
+              <span class="amount">${formatINR(f.total)} total</span>
+            </div>`
+          ).join('');
+        }
+
+        const repeated = data.repeated_merchants || [];
+        document.getElementById('repeatedPreview').textContent = repeated.length ? repeated.length + ' merchant(s)' : 'None';
+        const listEl = document.getElementById('repeatedList');
+        if (repeated.length === 0) {
+          listEl.innerHTML = '<div class="empty-state">No repeated spending detected</div>';
+        } else {
+          listEl.innerHTML = repeated.map(r =>
+            `<div class="list-item"><span class="merchant">${r.merchant}</span><span><span class="badge">${r.count} txns</span> · <span class="amount debit">${formatINR(r.total)}</span></span></div>`
+          ).join('');
+        }
+
+        const insights = data.ai_insights || [];
+        const insightsList = document.getElementById('aiInsights');
+        const insightsPreview = document.getElementById('aiInsightsPreview');
+        if (insightsList && insightsPreview) {
+          if (!insights.length) {
+            insightsPreview.textContent = 'No insights yet';
+            insightsList.innerHTML = '<li class="empty-state">No insights yet</li>';
+          } else {
+            insightsPreview.textContent = insights.length + ' insight(s)';
+            insightsList.innerHTML = insights.map(t => `<li>${t}</li>`).join('');
+          }
+        }
+
+        const txRes = await fetch('/api/transactions');
+        const txData = await txRes.json();
+        const txList = txData.transactions || [];
+        document.getElementById('txPreview').textContent = txList.length ? txList.length + ' transaction(s)' : 'Empty';
+        const txEl = document.getElementById('transactionsList');
+        if (txList.length === 0) {
+          txEl.innerHTML = '<div class="empty-state">No transactions yet. Add one above!</div>';
+        } else {
+          txEl.innerHTML = txList.map(t => {
+            const type = t.transaction_type || 'debit';
+            const isCredit = type === 'credit';
+            const amtClass = isCredit ? 'credit' : 'debit';
+            const badgeClass = isCredit ? 'credit-badge' : 'debit-badge';
+            const sign = isCredit ? '+' : '−';
+            return `<div class="list-item ${type}">
+              <span class="merchant">${t.merchant} · ${t.category} <span class="badge ${badgeClass}">${type}</span></span>
+              <span><span class="amount ${amtClass}">${sign}${formatINR(t.amount)}</span> <span style="color: var(--text-secondary); font-size: 0.8rem;">${t.date}</span></span>
+            </div>`;
+          }).join('');
+        }
+
+        const fds = data.fixed_deposits || [];
+        document.getElementById('fdPreview').textContent = fds.length ? fds.length + ' FD(s)' : 'Add FD';
+        const fdEl = document.getElementById('fdList');
+        if (fds.length === 0) {
+          fdEl.innerHTML = '<div class="empty-state">No fixed deposits added yet.</div>';
+        } else {
+          fdEl.innerHTML = fds.map(fd =>
+            `<div class="fd-card">
+              <h5>₹${Number(fd.amount).toLocaleString('en-IN')} @ ${fd.interest_rate}% for ${fd.tenure_months} months</h5>
+              <div>Start: ${fd.start_date}</div>
+              <div class="maturity">Maturity: ₹${Number(fd.maturity_amount).toLocaleString('en-IN')} (Interest: ₹${Number(fd.interest_earned).toLocaleString('en-IN')})</div>
+            </div>`
+          ).join('');
+        }
+      } catch (e) {
+        console.error(e);
+        showToast('Failed to load dashboard', 'error');
+      }
+    }
+
+    document.getElementById('btnParse').addEventListener('click', async () => {
+      const msg = document.getElementById('smsInput').value.trim();
+      if (!msg) { showToast('Enter an SMS message first', 'error'); return; }
+      try {
+        const res = await fetch('/api/parse_only', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: msg }) });
+        const data = await res.json();
+        if (data.error) {
+          showToast(data.error, 'error');
+          document.getElementById('extractedPreviewDebit').classList.remove('visible');
+          document.getElementById('extractedPreviewCredit').classList.remove('visible');
+          return;
+        }
+        const t = data.transaction;
+        const isCredit = (t.transaction_type || 'debit') === 'credit';
+        document.getElementById('extractedPreviewDebit').classList.remove('visible');
+        document.getElementById('extractedPreviewCredit').classList.remove('visible');
+        if (isCredit) {
+          document.getElementById('previewAmountC').textContent = formatINR(t.amount);
+          document.getElementById('previewMerchantC').textContent = t.merchant;
+          document.getElementById('previewDateC').textContent = t.date;
+          document.getElementById('extractedPreviewCredit').classList.add('visible');
+        } else {
+          document.getElementById('previewAmountD').textContent = formatINR(t.amount);
+          document.getElementById('previewMerchantD').textContent = t.merchant;
+          document.getElementById('previewCategoryD').textContent = t.category;
+          document.getElementById('previewDateD').textContent = t.date;
+          document.getElementById('extractedPreviewDebit').classList.add('visible');
+        }
+      } catch (e) { showToast('Parse failed', 'error'); }
+    });
+
+    document.getElementById('btnSubmit').addEventListener('click', async () => {
+      const msg = document.getElementById('smsInput').value.trim();
+      if (!msg) { showToast('Enter an SMS message first', 'error'); return; }
+      const btn = document.getElementById('btnSubmit');
+      btn.disabled = true;
+      try {
+        const res = await fetch('/api/receive_sms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: msg }) });
+        const data = await res.json();
+        if (data.error) showToast(data.error, 'error');
+        else {
+          const t = data.transaction;
+          const typeLabel = (t.transaction_type || 'debit') === 'credit' ? 'Credit' : 'Debit';
+          showToast(`${typeLabel}: ${formatINR(t.amount)} ${t.merchant}`);
+          document.getElementById('smsInput').value = '';
+          document.getElementById('extractedPreviewDebit').classList.remove('visible');
+          document.getElementById('extractedPreviewCredit').classList.remove('visible');
+          loadDashboard();
+        }
+      } catch (e) { showToast('Failed to add transaction', 'error'); }
+      finally { btn.disabled = false; }
+    });
+
+    document.getElementById('btnSimulate').addEventListener('click', async () => {
+      const cmd = document.getElementById('simulateInput').value.trim();
+      if (!cmd) { showToast('Enter a command like "reduce food by 100 per day"', 'error'); return; }
+      try {
+        const res = await fetch('/api/simulate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ command: cmd }) });
+        const data = await res.json();
+        if (data.error) { showToast(data.error, 'error'); document.getElementById('simulatorResult').classList.remove('visible'); return; }
+        const s = data.simulation;
+        document.getElementById('simulatorSavings').textContent = formatINR(s.monthly_savings) + ' saved/month';
+        document.getElementById('simulatorDetail').textContent = `Cut ${s.category} by ${formatINR(s.reduction_per_day)}/day → New predicted total: ${formatINR(s.new_predicted_total)}, Budget remaining: ${formatINR(s.new_budget_remaining)}`;
+        document.getElementById('simulatorResult').classList.add('visible');
+      } catch (e) { showToast('Simulation failed', 'error'); }
+    });
+
+    document.getElementById('btnAddFD').addEventListener('click', async () => {
+      const amount = document.getElementById('fdAmount').value;
+      const rate = document.getElementById('fdRate').value;
+      if (!amount || !rate) { showToast('Enter amount and interest rate', 'error'); return; }
+      try {
+        await fetch('/api/fixed_deposits', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            amount: parseFloat(amount),
+            interest_rate: parseFloat(rate),
+            tenure_months: parseInt(document.getElementById('fdTenure').value || '12', 10),
+            start_date: document.getElementById('fdStart').value || new Date().toISOString().slice(0, 10)
+          })
+        });
+        showToast('FD added');
+        loadDashboard();
+      } catch (e) { showToast('Failed to add FD', 'error'); }
+    });
+
+    document.getElementById('btnSaveSettings').addEventListener('click', async () => {
+      const budget = document.getElementById('inputBudget').value;
+      const income = document.getElementById('inputIncome').value;
+      const starting = document.getElementById('inputStartingBalance').value;
+      if (!budget || !income) { showToast('Enter budget and income', 'error'); return; }
+      try {
+        await fetch('/api/settings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ monthly_budget: budget, monthly_income: income, starting_balance: starting || '0' })
+        });
+        showToast('Settings saved');
+        loadDashboard();
+      } catch (e) { showToast('Failed to save', 'error'); }
+    });
+
+    document.getElementById('btnResetAll').addEventListener('click', async () => {
+      if (!confirm('Reset everything? This will permanently delete all transactions, fixed deposits, and reset settings to defaults. This cannot be undone.')) return;
+      const btn = document.getElementById('btnResetAll');
+      btn.disabled = true;
+      try {
+        const res = await fetch('/api/reset_all', { method: 'POST' });
+        const data = await res.json();
+        if (data.success) {
+          showToast('Everything reset successfully');
+          loadDashboard();
+        } else showToast(data.error || 'Reset failed', 'error');
+      } catch (e) { showToast('Reset failed', 'error'); }
+      finally { btn.disabled = false; }
+    });
+
+    document.getElementById('fdStart').value = new Date().toISOString().slice(0, 10);
+    loadDashboard();
+
+    // ===== CHATBOT FUNCTIONALITY =====
+    const chatbotWidget = document.getElementById('chatbotWidget');
+    const chatbotToggle = document.getElementById('chatbotToggle');
+    const chatbotClose = document.getElementById('chatbotClose');
+    const chatbotMessages = document.getElementById('chatbotMessages');
+    const chatbotInput = document.getElementById('chatbotInput');
+    const chatbotSend = document.getElementById('chatbotSend');
+
+    // Toggle chatbot visibility
+    chatbotToggle.addEventListener('click', () => {
+      chatbotWidget.classList.toggle('open');
+      if (chatbotWidget.classList.contains('open')) {
+        chatbotInput.focus();
+        // Show welcome message if no messages yet
+        if (chatbotMessages.children.length === 0) {
+          addChatMessage('Hi! I\'m your Financial Advisor. Ask me anything about budgeting, savings, spending, investments, or your financial health! 💰', 'ai');
+        }
+      }
+    });
+
+    chatbotClose.addEventListener('click', () => {
+      chatbotWidget.classList.remove('open');
+    });
+
+    function addChatMessage(text, sender = 'user') {
+      const messageDiv = document.createElement('div');
+      messageDiv.className = `chat-message ${sender}`;
+      messageDiv.innerHTML = `<div class="chat-message-bubble">${escapeHtml(text)}</div>`;
+      chatbotMessages.appendChild(messageDiv);
+      chatbotMessages.scrollTop = chatbotMessages.scrollHeight;
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    async function sendChatMessage() {
+      const message = chatbotInput.value.trim();
+      if (!message) return;
+
+      // Add user message
+      addChatMessage(message, 'user');
+      chatbotInput.value = '';
+
+      // Show loading state
+      chatbotSend.disabled = true;
+      chatbotSend.textContent = '...';
+
+      try {
+        const response = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: message })
+        });
+
+        if (!response.ok) {
+          if (response.status === 401) {
+            addChatMessage('Please sign in to use the chatbot.', 'ai');
+          } else {
+            addChatMessage(`Server error (${response.status}). Please try again.`, 'ai');
+          }
+          return;
+        }
+
+        const data = await response.json();
+        if (data.success) {
+          addChatMessage(data.message, 'ai');
+        } else if (data.error) {
+          addChatMessage('Error: ' + data.error, 'ai');
+        } else {
+          addChatMessage('Sorry, I couldn\'t process that. Please try again.', 'ai');
+        }
+      } catch (error) {
+        console.error('Chat error:', error);
+        addChatMessage('Network error: ' + error.message + '. Please check your connection.', 'ai');
+      } finally {
+        chatbotSend.disabled = false;
+        chatbotSend.textContent = 'Send';
+      }
+    }
+
+    chatbotSend.addEventListener('click', sendChatMessage);
+    chatbotInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') sendChatMessage();
+    });
+
+    // ===== APP NAVIGATION TAB SYSTEM =====
+    const navTabs = document.querySelectorAll('.nav-tab');
+    const allPanels = document.querySelectorAll('[id^="panel"]');
+
+    navTabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        const tabName = tab.dataset.tab;
+        
+        // Update active tab
+        navTabs.forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+
+        // Show/hide panels based on tab
+        allPanels.forEach(panel => {
+          panel.style.display = 'none';
+        });
+
+        // Dashboard tab - show main stats
+        if (tabName === 'dashboard') {
+          document.getElementById('warningBanner').style.display = '';
+          document.querySelectorAll('.stat-card, .sidebar').forEach(el => el.style.display = '');
+          document.getElementById('panelCharts').style.display = 'block';
+          document.getElementById('panelInsights').style.display = 'block';
+        }
+        // Add Transaction tab
+        else if (tabName === 'add-transaction') {
+          document.getElementById('panelAdd').style.display = 'block';
+          document.getElementById('panelSimulator').style.display = 'block';
+          document.getElementById('panelFD').style.display = 'block';
+        }
+        // Analytics tab
+        else if (tabName === 'analytics') {
+          document.getElementById('panelCharts').style.display = 'block';
+          document.getElementById('panelInsights').style.display = 'block';
+          document.getElementById('panelRepeated').style.display = 'block';
+        }
+        // Tools tab
+        else if (tabName === 'tools') {
+          document.getElementById('panelFraud').style.display = 'block';
+          document.getElementById('panelTransactions').style.display = 'block';
+        }
+        // Settings tab
+        else if (tabName === 'settings') {
+          document.getElementById('panelSettings').style.display = 'block';
+        }
+      });
+    });
+
+    // Initialize with dashboard view
+    document.getElementById('navDashboard').click();
+  </script>
+</body>
+</html>

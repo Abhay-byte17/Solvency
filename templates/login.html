@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login – Solvency</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --white:#fff; --bg:#f8fafc; --blue:#0284c7;
+      --blue-light:#0ea5e9; --blue-soft:#e0f2fe;
+      --blue-border:#bae6fd; --text:#0f172a;
+      --text-muted:#475569; --danger:#dc2626;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{
+      font-family:'Outfit',sans-serif;
+      background:var(--bg);
+      min-height:100vh;
+      display:flex;align-items:center;justify-content:center;
+    }
+    .card{
+      width:100%;max-width:400px;
+      background:#fff;border:1px solid var(--blue-border);
+      border-radius:16px;padding:2rem;
+      box-shadow:0 10px 40px rgba(2,132,199,.1)
+    }
+    h1{text-align:center;color:var(--blue);margin-bottom:1rem}
+    .btn{
+      width:100%;padding:.8rem;border:none;border-radius:10px;
+      background:linear-gradient(135deg,var(--blue),var(--blue-light));
+      color:#fff;font-weight:600;cursor:pointer;margin-top:.5rem
+    }
+    input{
+      width:100%;padding:.7rem;margin-bottom:1rem;
+      border:1px solid var(--blue-border);border-radius:10px
+    }
+    .google-box{margin-bottom:1.5rem;text-align:center}
+  </style>
+</head>
+
+<body>
+
+<div class="card">
+
+  <h1>Login</h1>
+
+  <!-- GOOGLE BUTTON -->
+  <div class="google-box">
+    <div id="googleBtn"></div>
+  </div>
+
+  <!-- EMAIL LOGIN -->
+  <form method="post" action="{{ url_for('auth_login') }}">
+    <input name="email" type="email" placeholder="Email" required>
+    <input name="password" type="password" placeholder="Password" required>
+    <button class="btn">Login</button>
+  </form>
+
+</div>
+
+<!-- GOOGLE SCRIPT -->
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+
+<script>
+function handleCredentialResponse(response){
+  fetch("/auth/google",{
+    method:"POST",
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({id_token:response.credential})
+  })
+  .then(r=>r.json())
+  .then(data=>{
+    if(data.success){
+      window.location.href=data.redirect;
+    }else{
+      alert(data.error || "Google login failed");
+    }
+  });
+}
+
+window.onload = function(){
+  const clientId = "{{ google_client_id }}";
+
+  if(!clientId){
+    console.error("Google Client ID missing");
+    return;
+  }
+
+  google.accounts.id.initialize({
+    client_id: clientId,
+    callback: handleCredentialResponse
+  });
+
+  google.accounts.id.renderButton(
+    document.getElementById("googleBtn"),
+    { theme:"outline", size:"large" }
+  );
+};
+</script>
+
+</body>
+</html>
