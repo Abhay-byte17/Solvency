@@ -1936,3 +1936,6 @@ if __name__ == '__main__':
     print("Solvency - Budget Tracker running at http://127.0.0.1:5000")
     # Bind to all interfaces so it works in embedded IDE browsers too.
     app.run(debug=True, host='0.0.0.0', port=5000, use_reloader=False)
+@app.route('/ping')
+def ping():
+    return {"status": "ok"}, 200
