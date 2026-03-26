@@ -104,7 +104,7 @@ SMTP_PORT = int(os.environ.get("SOLVENCY_SMTP_PORT", "587"))
 #   - http://127.0.0.1:5000/auth/supabase/callback
 #   - https://ktctgjrzrudaystdmxhs.supabase.co/auth/v1/callback
 #   - https://solvency-lfj8.onrender.com/auth/google
-GOOGLE_CLIENT_ID = "717049491439-hbk4ebn17oi9evkmpnq7osjlg4fdfi1q.apps.googleusercontent.com"
+GOOGLE_CLIENT_ID = "717049491439-hbk4ebn17oi9evkmnpq7osjig4fdfi1q.apps.googleusercontent.com"
 GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET", "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")
 
 # Database path - uses project directory
